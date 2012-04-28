@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%">
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.controls.Tree;
+			import utils.*;
+			import mx.utils.StringUtil;
+			
+			public var xml:XML;
+			public var tree:Tree;
+			
+			private var foundIndex:Number = 0;
+			private var lastWord:String = "";
+			private function find():void {
+				var word:String = StringUtil.trim(keyword.text).toLowerCase();
+				if(word == "") {
+					result.text = "";
+					return;
+				}
+				
+				if(word != lastWord) {
+					lastWord = word;
+					foundIndex = 0;
+				}
+				var results:ArrayCollection = new ArrayCollection;
+				var list:XMLList = xml.descendants();
+				
+				for(var i:Number = 0; i < list.length(); i++) {
+					var node:XML = list[i];
+					if(node.@name.toLowerCase().indexOf(word) >= 0) {
+						results.addItem(i);
+					}
+				}
+				
+				if(results.length == 0) {
+					result.text = "结果:0";
+					return;	
+				}
+				
+				var node:XML = list[results.getItemAt(foundIndex++)];
+				Utils.expandParents(tree,node);
+				tree.selectedItem = node;
+				tree.scrollToIndex(tree.selectedIndex);
+				result.text = "结果:" + foundIndex + "/" + results.length.toString();
+				if(foundIndex >= results.length) {
+					foundIndex = 0;
+				}
+			}
+		]]>
+	</mx:Script>
+	<mx:Glow id="show" duration="1000" 
+        alphaFrom="1.0" alphaTo="0" 
+        blurXFrom="0.0" blurXTo="50.0" 
+        blurYFrom="0.0" blurYTo="50.0" 
+        color="0x00FF80" repeatCount="10000"/>
+    <mx:Glow id="fade" duration="1000" 
+        alphaFrom="0.5" alphaTo="0" 
+        blurXFrom="0.0" blurXTo="50.0" 
+        blurYFrom="0.0" blurYTo="50.0" 
+        color="0x00FF80" effectStart="show.stop()"/>
+	<mx:TextInput id="keyword" width="120"/>
+	<mx:Image id="search" source="assets/find.png" width="24" height="24" click="find()" 
+		rollOverEffect="{show}" rollOutEffect="{fade}" useHandCursor="true" buttonMode="true"/>
+	<mx:Label id="result"/>
+</mx:HBox>

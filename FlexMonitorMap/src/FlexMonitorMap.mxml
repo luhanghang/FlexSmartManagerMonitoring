@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute"
+	backgroundDisabledColor="#000000" 
+	disabledOverlayAlpha="0.3" modalTransparency="0.3" 
+	modalTransparencyColor="#000000" creationComplete="init()" 
+	modalTransparencyBlur="5"
+	xmlns:coverflow="com.dougmccune.coverflow.*"
+	xmlns:containers="com.dougmccune.containers.*"
+	xmlns:u="utils.*" xmlns:views="views.*" resize="set_scope(0)" mouseMove="mouseMove(event)">
+	
+	<mx:Style source="stylesheets/stylesheet.css"/>
+	
+	<mx:Script>
+		<![CDATA[
+			import views.SpotThumb;
+			import views.Spot;
+			import views.ThumbPanel;
+			import mx.core.Application;
+			import mx.controls.Alert;
+			import mx.events.ItemClickEvent;
+			import mx.utils.ObjectProxy;
+			import mx.rpc.events.ResultEvent;
+			import utils.Utils;
+			import mx.collections.ArrayCollection;
+			import mx.managers.PopUpManager;
+			import mx.controls.buttonBarClasses.ButtonBarButton;
+			import mx.managers.DragManager;
+			import mx.core.UIComponent;
+			import utils.Icons;
+			import events.MapEvent;
+			import mx.utils.ObjectProxy;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Image;
+			import utils.Utils;
+			import mx.effects.Fade;
+			
+			[Bindable]
+			private var gFilter:GlowFilter = Utils.neonFilter();
+			
+			[Bindable]
+			private var mapsTreeData:XML;
+						
+			private var showingMap:XML;
+			private var currentParent:XML;
+			
+			private function init():void {
+				mapListRPC.url = utils.Utils.get_url("/maps/client_list");
+				mapListRPC.send();
+			}
+			
+			private function setMapList(event:ResultEvent):void {
+				mapsTreeData = XML(event.result);
+				currentParent = mapsTreeData;
+			}
+	
+			private function map_click(event:MapEvent):void {
+				showMap(event.map as XML);
+			}
+			
+			private function showMap(map:XML):void {
+				//title.text = map.@name;
+				showingMap = map;
+				if(map.@web == "0") {
+					init_map(map);
+				} else {
+					var url:String = "/maps/web/" + showingMap.@id; 
+					var request:URLRequest = new URLRequest(url); 
+					navigateToURL(request,"_blank");
+				}
+			}
+			
+			private function mapTreeClick():void {
+				var map:XML = mapTree.selectedItem as XML;
+				if(map.children().length() > 0) {
+					mapTree.expandItem(map, true);
+				}	
+				show_image(map);
+			}
+		
+			private function show_image(map:XML):void {
+				if(currentParent != map.parent()) {
+					currentParent = map.parent() as XML;
+				}
+				showMap(map);
+			}
+					
+			private function labelFunc(item:XML):String {
+				var cs:int = item.children().length();
+				if(cs == 0) return item.@name;
+				return item.@name + " (" + cs + ")";
+			}
+			
+			private function set_icon(item:Object):* {
+				if(item.@id == '0') return Icons.HOME;
+         		if(item.@web == '1') return Icons.MAPWEB; 
+				return Icons.MAP;		
+			}
+			
+			private function set_monitor_icon(item:Object):* {
+         		return Icons.MONITOR;		
+			}
+			
+			[Bindable]
+			private var map:XML;
+			
+			[Bindable]
+			private var spots:XML;
+			
+			private var big:Boolean = false;
+			private var small:Boolean = false;
+			
+			private var rateW:Number;
+			private var rateH:Number;
+			
+			public function init_map(map:XML):void {
+				img.x = 0;
+				img.y = 0;
+				spotsLayer.x = 0;
+				spotsLayer.y = 0;
+				thumbLayer.removeAllChildren();
+				spotsLayer.removeAllChildren();
+				this.map = map;
+				mapSpotRPC.url = Utils.get_url("/maps/list_spots/" + map.@id);
+				mapSpotRPC.send();
+			}
+			
+			private function set_scope(flag:int):void {
+				if(scope) {
+					scope.x = 0;
+					scope.y = 0;
+					if(flag == 0) {
+						big = true;
+						var f:Fade = new Fade;
+						f.alphaFrom = 0;
+						f.alphaTo = 1;
+						f.play([img]);
+						img.width = img.contentWidth;
+						img.height = img.contentHeight;
+					}
+					else small = true;
+					if(big && small) {
+						var w:int = this.width > img.contentWidth? this.width: img.contentWidth;
+						var h:int = this.height > img.contentHeight? this.height: img.contentHeight;
+						rateW = img.contentWidth / nav.width;
+						rateH = img.contentHeight / nav.height;
+						scope.width = this.width / w * nav.width;
+						scope.height = this.height / h * nav.height;	
+						spotsLayer.width = img.contentWidth;
+						spotsLayer.height = img.contentHeight;
+					}
+				}
+				init_layers();
+			}
+			
+			private var startX:Number;
+			private var startY:Number;
+			
+			private function beginDrag(event:MouseEvent):void {
+				startX = event.stageX;
+				startY = event.stageY;	
+			}
+			
+			private function mapMove(event:MouseEvent):void {
+				if(event.buttonDown) {
+					var x:Number = event.stageX - startX;
+					var y:Number = event.stageY - startY;
+					var w:Number = this.width > img.contentWidth? this.width : img.contentWidth;
+					var h:Number = this.height > img.contentHeight? this.height : img.contentHeight;
+					if(img.x + x > 0) x = 0 - img.x;
+					if(img.y + y > 0) y = 0 - img.y;
+					if(this.width - (img.x + x) > img.contentWidth) x = width - img.x - w;
+					if(this.height - (img.y + y) > img.contentHeight) y = height - img.y - h;
+					startX = event.stageX;
+					startY = event.stageY;	
+					img.move(img.x + x, img.y + y);
+					spotsLayer.move(spotsLayer.x + x, spotsLayer.y + y);
+					scope.move(scope.x - x / rateW, scope.y - y / rateH);
+				}	
+			}
+			
+			private function scopeMove(event:MouseEvent):void {
+				if(event.buttonDown) {
+					var x:Number = scope.x + (event.stageX - startX);
+					var y:Number = scope.y + (event.stageY - startY);
+					if(x < 0) x = 0;
+					if(y < 0) y = 0;
+					if(x + scope.width > nav.width) x = nav.width - scope.width;
+					if(y + scope.height > nav.height) y = nav.height - scope.height;
+					startX = event.stageX;
+					startY = event.stageY;
+					scope.move(x,y);
+					img.move(0 - x * rateW, 0 - y * rateH);
+					spotsLayer.move(0 - x * rateW, 0 - y * rateH);
+				} 	
+			}
+			
+			private function init_map_spots(event:ResultEvent):void {
+				spots = XML(event.result);
+				init_layers();
+			}
+			
+			private function init_layers():void {
+				if(thumbLayer)
+					thumbLayer.removeAllChildren();
+				if(spotsLayer) {
+					spotsLayer.removeAllChildren();
+					if(big && small && spots) {
+						for each(var spot:XML in spots.Spot) {
+							var t:SpotThumb = new SpotThumb;
+							t.x = int(spot.@x) / rateW;
+							t.y = (int(spot.@y) + 45) / rateH;
+							t.spot = spot;
+							thumbLayer.addChild(t);
+							var s:Spot = new Spot;
+							s.callBack = open_video;
+							s.x = spot.@x;
+							s.y = spot.@y;
+							s.spot = spot;
+							spotsLayer.addChild(s);
+						}
+					}
+				}
+			}
+			
+			private function showMenu():void {
+				menu.x = 0;	
+			}
+			
+			private function hideMenu():void {
+				
+			}
+			
+			private function mouseMove(event:MouseEvent):void {
+				if(event.stageX <= 3) showMenu();	
+			}
+			
+			private function change_align():void {
+				if(indicator.text == '<<') {
+					indicator.text = '>>';
+					alignLeft.play();				
+				} else {
+					indicator.text = '<<';
+					alignRight.play();
+				}	
+			}
+			
+			private function find_spot_on_map():void {
+				var node:XML = spotTree.selectedItem as XML;
+				for each(var ob:Object in thumbLayer.getChildren()) {
+					var t:SpotThumb = ob as SpotThumb;
+					if(t.spot.@id == node.@id) {
+						t.flash();
+						return;
+					}
+				}								
+			}
+			
+			private function open_video(spot:XML,s:Spot):void {
+				ExternalInterface.call("open_video", spot.@id, s.x + spotsLayer.x, s.y + spotsLayer.y);
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Sequence id="alignLeft" target="{menu}">
+		<mx:Blur blurXTo="50" duration="100"/>
+		<mx:Resize widthTo="200" duration="100"/>
+		<mx:Blur blurXTo="0" duration="100"/>
+	</mx:Sequence>
+	
+	<mx:Sequence id="alignRight" target="{menu}" effectEnd="menu.percentWidth=100">
+		<mx:Blur blurXTo="50" duration="100"/>
+		<mx:Resize widthTo="{this.width}" duration="100"/>
+		<mx:Blur blurXTo="0" duration="100"/>
+	</mx:Sequence>
+	
+	<mx:Glow id="glow" duration="1000" 
+        alphaFrom="1" alphaTo="1" 
+        blurXFrom="0.0" blurXTo="50.0" 
+        blurYFrom="0.0" blurYTo="30.0" 
+        color="0x00FF80" repeatCount="10000"/> 
+    <mx:Glow id="glowOut" duration="1000" 
+        alphaFrom="1" alphaTo="0" 
+        blurXFrom="0.0" blurXTo="50.0" 
+        blurYFrom="0.0" blurYTo="30.0" 
+        color="0x00FF80" effectStart="glow.stop()"/>
+	
+	<mx:HTTPService id="mapListRPC" showBusyCursor="true" result="setMapList(event)" resultFormat="xml"/>
+	<mx:HTTPService id="mapRPC" showBusyCursor="true" useProxy="false" method="POST" result="mapTree.enabled=true"/>  
+	<mx:HTTPService id="mapSpotRPC" useProxy="false" showBusyCursor="true" result="init_map_spots(event)" resultFormat="xml"/>
+	
+	<mx:Canvas id="mapSpots" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<u:LoadingImage width="100%" height="100%" id="img" x="0" y="0" source="{Utils.get_url(map.@img)}" 
+			scaleContent="false" complete="set_scope(0)"/>
+	
+		<mx:Canvas height="100%" width="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+			<mx:Canvas x="0" y="0" id="spotsLayer" backgroundAlpha="0" backgroundColor="#000000"
+				horizontalScrollPolicy="off" verticalScrollPolicy="off" 
+				mouseDown="beginDrag(event)" 
+				mouseMove="mapMove(event)"/>	
+		</mx:Canvas>
+	</mx:Canvas>
+	
+	<mx:HBox id="menu" width="100%" height="100%" horizontalAlign="right">
+		<mx:Canvas x="0" y="0" width="200" height="100%" styleName="frame" mouseOut="hideMenu()">
+			<mx:VBox width="100%" height="100%">
+				<mx:Canvas id="nav" width="100%">
+					<u:LoadingImage width="100%" x="0" y="0" source="{Utils.get_url(map.@thumb)}" scaleContent="false" complete="set_scope(1)"/>
+					<mx:Canvas id="thumbLayer" x="0" y="0" width="100%" height="100%" horizontalScrollPolicy="off" verticalScrollPolicy="off"/>
+					<mx:Canvas id="scope" x="0" y="0" 
+						backgroundColor="#000000" borderColor="#ffffff" 
+						borderStyle="solid" alpha="0.5" backgroundAlpha="1" buttonMode="true" useHandCursor="true"
+						mouseDown="beginDrag(event)" 
+						mouseMove="scopeMove(event)" mouseOut="scopeMove(event)"/> 	
+				</mx:Canvas>
+				<mx:VDividedBox width="100%" height="100%">
+					<mx:Canvas width="100%" height="50%">
+						<mx:Tree id="mapTree" dataProvider="{mapsTreeData}" y="25"
+							width="100%" height="100%" showRoot="false" maxWidth="200" 
+							labelFunction="{labelFunc}" iconFunction="set_icon" 
+							click="mapTreeClick()" dragEnabled="false" 
+							textIndent="6" rowHeight="18"/>
+							<views:StyleTitle text="地图列表"/>		
+					</mx:Canvas>
+					<mx:Canvas width="100%" height="50%">
+						<mx:Tree id="spotTree" dataProvider="{spots.Spot}" y="25"
+							width="100%" height="100%" showRoot="false" maxWidth="200" 
+							labelField="@name" iconFunction="set_monitor_icon" 
+							click="find_spot_on_map()" dragEnabled="false" 
+							textIndent="6" rowHeight="18"/>
+							<views:StyleTitle text="监控点列表"/>		
+					</mx:Canvas>
+				</mx:VDividedBox>
+				<mx:HBox width="100%">
+					<mx:Label rollOutEffect="{glowOut}" rollOverEffect="{glow}" id="indicator" text="&lt;&lt;" fontSize="12" color="#ffffff" mouseChildren="false" useHandCursor="true" buttonMode="true" click="change_align()"/>
+				</mx:HBox>
+			</mx:VBox>	
+		</mx:Canvas>
+	</mx:HBox>				
+</mx:Application>

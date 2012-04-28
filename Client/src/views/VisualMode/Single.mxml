@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+	width="100%" height="100%" styleName="vmode" 
+	toolTip="{number}画面" alpha="0.5" 
+	rollOverEffect="{fadeIn}" rollOutEffect="{fadeOut}" 
+	useHandCursor="true" buttonMode="true" mouseChildren="false" click="setMode()">
+	<mx:Script>
+		<![CDATA[
+			[Bindable]
+			public var number:String;
+			
+			public var mode:Number;
+			
+			protected function setMode():void {
+				ExternalInterface.call("set_player_mode",mode);
+			}
+		]]>
+	</mx:Script>
+	<mx:Fade id="fadeIn" alphaFrom="0.5" alphaTo="1"/>
+	<mx:Fade id="fadeOut" alphaFrom="1" alphaTo="0.5"/>
+</mx:Canvas>

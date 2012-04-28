@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Single xmlns="views.VisualMode.*" xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="init()">
+	<mx:Script>
+		<![CDATA[
+			private function init():void {
+				var color:uint = getStyle("borderColor");
+				graphics.lineStyle(1, color, 1);
+				graphics.moveTo(3,3);
+				graphics.lineTo(width / 2.5, height / 2.5);
+				
+				graphics.moveTo(width - 3,3);
+				graphics.lineTo(width - width / 2.5, height / 2.5);
+				
+				graphics.moveTo(3, height - 3);
+				graphics.lineTo(width / 2.5, height - height / 2.5);
+				
+				graphics.moveTo(width - 3, height - 3);
+				graphics.lineTo(width - width / 2.5, height - height / 2.5);
+				
+				graphics.beginFill(color);
+				graphics.moveTo(3,3);
+				graphics.lineTo(3,6);
+				graphics.lineTo(6,3);
+				graphics.lineTo(3,3);
+				graphics.endFill();
+				
+				graphics.beginFill(color);
+				graphics.moveTo(width - 3,3);
+				graphics.lineTo(width - 3,6);
+				graphics.lineTo(width - 6,3);
+				graphics.lineTo(width - 3,3);
+				graphics.endFill();
+				
+				graphics.beginFill(color);
+				graphics.moveTo(3,height - 3);
+				graphics.lineTo(3,height - 6);
+				graphics.lineTo(6,height - 3);
+				graphics.lineTo(3,height - 3);
+				graphics.endFill();
+				
+				graphics.beginFill(color);
+				graphics.moveTo(width - 3,height - 3);
+				graphics.lineTo(width - 3,height - 6);
+				graphics.lineTo(width - 6,height - 3);
+				graphics.lineTo(width - 3,height - 3);
+				graphics.endFill();
+			}
+		]]>
+	</mx:Script>		
+</Single>

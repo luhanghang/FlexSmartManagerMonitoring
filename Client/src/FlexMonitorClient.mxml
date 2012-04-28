@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute" 
+	xmlns:skins="skins.*" backgroundDisabledColor="#000000" 
+	disabledOverlayAlpha="0.3" modalTransparency="0.3" 
+	modalTransparencyColor="#000000" creationComplete="init()" 
+	modalTransparencyBlur="5" xmlns:List="views.List.*">
+	<mx:Style source="stylesheets/stylesheet.css"/>
+	<mx:Script>
+		<![CDATA[
+			import events.SpotEvent;
+			import mx.formatters.DateFormatter;
+			
+			private var df:DateFormatter = new DateFormatter;
+			private function init():void {
+				df.formatString = "YYYY-MM-DD HH:NN:SS";
+				var timer:Timer = new Timer(1000);
+				timer.addEventListener(TimerEvent.TIMER, setTime);
+				timer.start();
+			}
+			
+			private function setTime(event:TimerEvent):void {
+				date.text = df.format(new Date);	
+			}
+	       
+//	       	private function spotTreeInited(event:SpotEvent):void {
+//	       		//presetting.groups = event.spot;
+//	       	}
+//	       
+//	       	private function spotSelected(event:SpotEvent):void {
+//	       		if(event.spotType == SpotEvent.IS_SPOT) {
+//	       			//presetting.toggleAddButton(true);
+//	       			//presetting.selectedSpot = event.spot;
+//	       		} else {
+//	       			//presetting.toggleAddButton(false);
+//	       		}
+//	       	}     
+		]]>
+	</mx:Script>
+	<mx:VBox width="100%" height="100%">
+		<mx:VDividedBox id="leftNav" x="0" y="0" width="100%" height="100%" verticalGap="5">
+			<List:Spots id="spots" width="100%" height="40%"/>
+			<!--
+			<List:Presettings id="presetting" width="100%" height="30%" InEditing="spots.groupTree.enabled=false" EndEdit="spots.groupTree.enabled=true"/>
+			<List:PollingSchemes id="pollingScheme" width="100%" height="30%"/>
+			-->
+		</mx:VDividedBox>
+		<mx:HBox fontSize="8" fontWeight="bold" width="100%" horizontalAlign="center" height="25" verticalAlign="center">
+			<mx:Label id="date"/>
+		</mx:HBox>	
+	</mx:VBox>
+</mx:Application>

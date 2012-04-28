@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="init()" 
+	styleName="frame" borderStyle="none" minHeight="25" 
+	verticalScrollPolicy="off" horizontalScrollPolicy="off"
+	xmlns:pv3dEffects="ws.tink.flex.pv3dEffects.*"
+	xmlns:utils="utils.*"
+	xmlns:views="views.*">
+	
+	<mx:Metadata>
+		[Event(name="InEditing")]
+		[Event(name="EndEdit")]
+	</mx:Metadata>
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.rpc.events.ResultEvent;
+			import views.ItemEditor;
+			import mx.events.ListEvent;
+			import mx.events.CloseEvent;
+			import mx.utils.StringUtil;
+			import mx.controls.Alert;
+			import utils.Icons;
+			import utils.Utils;
+			
+			public var groups:XML;
+			
+			public var selectedSpot:XML;
+	        
+	        [Bindable]
+			private var presettings:XML;
+			
+			private function init():void {
+				presettingRPC.url = Utils.get_url("/spot_presettings/list");
+				presettingRPC.send();	
+			}
+			
+			public function toggleAddButton(enabled:Boolean):void {
+				presettingButton.enabled = enabled;
+			}
+			
+			private function clearPresettingName():void {
+				if(StringUtil.trim(presettingName.text) == '请填写预置位名称') {
+					presettingName.text = '';	
+				}
+			}
+			
+			private function setPresettingDefaultName():void {
+				if(StringUtil.trim(presettingName.text) == '') {
+					presettingName.text = '请填写预置位名称';	
+				}	
+			}
+			
+			private function disableSavePresetting():void {
+				savePresetting.enabled = false;
+			}
+			
+			private function enableSavePresetting():void {
+				var name:String = StringUtil.trim(presettingName.text);
+				savePresetting.enabled = name != '' && name != '请填写预置位名称' ;
+			}
+			
+			private function save_presetting():void {
+				var name:String = StringUtil.trim(presettingName.text);
+				
+				if(name != '' && name != '请填写预置位名称') {
+					presettingCreateRPC.url = Utils.get_url("/spots/create_presetting/" + selectedSpot.@id);
+					var params:URLVariables = new URLVariables;
+					params['presetting[name]'] = StringUtil.trim(presettingName.text);
+					presettingCreateRPC.send(params);	
+				}
+			}
+			
+			private function init_presetting(event:ResultEvent):void {
+				presettings = XML(event.result);
+			}
+			
+			private function add_presetting(event:ResultEvent):void {
+				close_presetting_inf();
+				presettings.appendChild(XML(event.result));
+				selectedSpot.appendChild(XML(event.result));	
+			}
+			
+			private function pIconFunc(item:Object):* {
+				return Icons.PRESETTING;
+			}
+			
+			private function new_presetting():void {
+				buttonBar.selectedIndex = 1;
+				dispatchEvent(new Event("InEditing"));
+			}
+			
+			private function close_presetting_inf():void {
+				presettingName.text = "请填写预置位名称";
+				buttonBar.selectedIndex = 0;
+				dispatchEvent(new Event("EndEdit"));	
+			}
+			
+			private function remove_presetting(event:CloseEvent):void {
+				if(event.detail == Alert.YES) {
+					var item:XML = presettingList.selectedItem as XML;
+					presettingRemoveRPC.url = Utils.get_url("/spot_presettings/destroy/" + item.@id);
+					presettingRemoveRPC.send();
+					var ps:XMLList = presettings.children();
+					var i:Number;
+                	for(i = 0 ; i < ps.length(); i++) {
+                   		if(ps[i] == item) {
+                   			delete ps[i];
+                   			break;
+                   		}
+                	}
+                	
+                	ps = groups.descendants("Presetting")
+                	for(i = 0 ; i < ps.length(); i++) {
+                   		if(ps[i] == item) {
+                   			delete ps[i];
+                   			return;
+                   		}
+                	}	
+				}
+			}
+			
+			private function presettingClick(event:MouseEvent):void {
+				this.isDoubleClick = false; 
+                setTimeout(laterClickFunction,300);
+			}
+			
+			private function presettingDoubleClick(event:MouseEvent):void {
+				this.isDoubleClick = true;
+			}
+			
+			private function laterClickFunction():void {
+				if(this.isDoubleClick) rename();
+				else play_presetting();	
+			}
+	
+			
+			private function play_presetting():void {
+				var node:XML = presettingList.selectedItem as XML;
+				presettingSet.enabled = node != null;
+			}
+			
+			private function rename():void {
+				presettingList.editable = true;
+				presettingList.editedItemPosition = {rowIndex: presettingList.selectedIndex};	
+			}
+			
+			private function init_presetting_editor():void {
+//				var editor:ItemEditor = ItemEditor(presettingList.itemEditorInstance);
+//				var node:XML = presettingList.selectedItem as XML;
+//				editor.itemSrc = node;
+//				editor.list = presettings.Presetting;
+//				editor.errorMessage = "预置位名称已存在";
+//				editor.requiredError = "请填写预置位名称";
+			}
+			
+			private function do_rename(event:ListEvent):void {
+				event.preventDefault();
+				//var editor:ItemEditor = ItemEditor(presettingList.itemEditorInstance);
+				var node:XML = presettingList.selectedItem as XML;
+				var newName:String = StringUtil.trim(TextInput(presettingList.itemEditorInstance).text);
+	
+				for each(var item:XML in presettings.Preseting) {
+					if(item.@name == node.@name) {
+						presettingList.editable = false;
+						return;	
+					}				
+				}
+				if(newName != '' && newName != StringUtil.trim(node.@name)) {
+					node.@name = newName;
+					presettingUpdateRPC.url = Utils.get_url("/spot_presettings/update/" + node.@id);
+					var params:URLVariables = new URLVariables;
+					params["presetting[name]"] = newName;
+					presettingUpdateRPC.send(params);
+					for each(var item:XML in groups.descendants("Presetting")) {
+						if(item.@id == node.@id) {
+							item.@name = newName;
+							break;
+						}
+					}
+				}
+				presettingList.destroyItemEditor();
+				presettingList.editable = false;	
+			}
+			
+			private var isDoubleClick:Boolean = false;
+			
+			private function toggleButtonBar():void {
+				buttonBar.visible = !buttonBar.visible;	
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:HTTPService id="presettingRPC" result="init_presetting(event)" resultFormat="xml" requestTimeout="5000" fault="init()"/>
+	<mx:HTTPService id="presettingUpdateRPC" useProxy="false" showBusyCursor="true"/>
+	<mx:HTTPService id="presettingCreateRPC" result="add_presetting(event)" resultFormat="xml"/>
+	<mx:HTTPService id="presettingRemoveRPC" showBusyCursor="true" useProxy="false"/>
+	
+	<pv3dEffects:Cache id="hideFlip" transparent="true"/>
+    <pv3dEffects:Cube id="showFlip" constrain="true" transparent="true" direction="down" duration="500"/>
+    
+    <mx:Fade alphaFrom="0" alphaTo="1" id="show" effectStart="buttonBar.includeInLayout=true"/>
+    <mx:Fade alphaFrom="1" alphaTo="0" id="hide" effectEnd="buttonBar.includeInLayout=false"/>
+	
+	<utils:UniqueValidatorXML id="validatorPresettingName" source="{presettingName}" invalid="disableSavePresetting()" valid="enableSavePresetting()" field="@name" 
+		required="true" property="text" requiredFieldError="请填写预置位名称" list="{presettings.Presetting}" errorMessage="预置位名称已存在"/>
+	
+	<mx:VBox top="25" width="100%" height="100%" bottom="5" paddingLeft="10" paddingRight="10">
+		<mx:Tree id="presettingList" width="100%" height="100%" rowHeight="18" doubleClickEnabled="true" doubleClick="presettingDoubleClick(event)"
+			dataProvider="{presettings.Presetting}" labelField="@name" showRoot="false" 
+			iconFunction="pIconFunc" dragEnabled="true" dragMoveEnabled="false" itemEditBeginning="init_presetting_editor()"  
+			click="presettingClick(event)" editorXOffset="30" editorWidthOffset="-50" itemEditEnd="do_rename(event)"/>
+		<mx:ViewStack id="buttonBar" width="100%" paddingLeft="5" paddingRight="5" 
+			selectedIndex="0" visible="false" includeInLayout="false" showEffect="{show}" hideEffect="{hide}">	
+			<mx:HBox width="100%" verticalAlign="bottom" horizontalGap="3" hideEffect="{hideFlip}" showEffect="{showFlip}">
+				<mx:Button id="presettingButton" label="添加" enabled="false" click="new_presetting()"/>
+				<mx:Button id="presettingSet" label="设置" enabled="false"/>
+				<mx:Spacer width="100%"/>
+				<views:Trash id="trash" src="{presettingList}" confirm="确定删除?" callBack="remove_presetting"/>
+			</mx:HBox>
+			<mx:HBox width="100%" horizontalGap="1" hideEffect="{hideFlip}" showEffect="{showFlip}" verticalAlign="bottom">
+				<mx:TextInput text="请填写预置位名称" change="enableSavePresetting()" focusOut="setPresettingDefaultName()" focusIn="clearPresettingName()" id="presettingName" width="100%"/>
+				<mx:Button icon="{Icons.SAVE}" width="25" toolTip="保存设置" id="savePresetting" enabled="false" click="save_presetting()"/>
+				<mx:Button icon="{Icons.CANCEL}" width="25" toolTip="取消" click="close_presetting_inf()"/>	
+			</mx:HBox>
+		</mx:ViewStack>
+	</mx:VBox>
+	<views:StyleTitle text="预置位" buttonMode="true" useHandCursor="true" mouseChildren="false" click="toggleButtonBar()"/>
+</mx:Canvas>

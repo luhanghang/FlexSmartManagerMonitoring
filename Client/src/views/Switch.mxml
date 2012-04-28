@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" 
+	verticalAlign="middle" horizontalAlign="center" creationComplete="init()" horizontalGap="1">
+	<mx:Script>
+		<![CDATA[
+			import utils.Utils;
+		
+			public var image:String;
+			public var label_text:String;
+			
+			private var on:Boolean = false;
+			
+			private function init():void {
+				if(image) {
+					img.visible = true;
+					img.includeInLayout = true;
+					lb.visible = false;
+					lb.includeInLayout = false;
+					img.source = image;
+				} else {
+					img.visible = false;
+					img.includeInLayout = false;
+					lb.visible = true;
+					lb.includeInLayout = true;
+					lb.text = label_text;
+				}
+			}
+			
+			private function do_switch():void {
+				on = !on;
+				if(on) {
+					s_off.visible = false;
+					s_off.includeInLayout = false;
+					s_on.visible = true;
+					s_on.includeInLayout = true;
+				} else {
+					s_off.visible = true;
+					s_off.includeInLayout = true;
+					s_on.visible = false;
+					s_on.includeInLayout = false;
+				}
+			}
+		]]>
+	</mx:Script>
+	<mx:Image id="img" width="35" height="35"/>
+	<mx:HBox width="40" horizontalAlign="left">
+		<mx:Label id="lb"/>
+	</mx:HBox>	
+	<mx:Label text="on" fontSize="7" fontWeight="bold"/>
+	<mx:Image id="s_off" source="assets/switch_off.png" buttonMode="true" useHandCursor="true" click="do_switch()">
+	</mx:Image>
+	<mx:Image id="s_on" source="assets/switch_on.png"	buttonMode="true" useHandCursor="true" click="do_switch()" visible="false" includeInLayout="false" autoLoad="true"/>	
+	<mx:Label text="off" fontSize="7" fontWeight="bold"/>	
+</mx:HBox>

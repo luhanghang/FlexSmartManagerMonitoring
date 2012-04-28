@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application 
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:view="views.*" 
+	layout="absolute">
+	
+	<mx:Style source="stylesheets/stylesheet.css"/>
+	
+	<mx:Script>
+		<![CDATA[
+			
+			
+		]]>
+	</mx:Script>
+	
+	<mx:VBox width="100%" height="100%" y="10" paddingBottom="25"
+		horizontalAlign="center" verticalGap="8">
+		<mx:VBox width="100%" horizontalAlign="center" verticalGap="-1">
+			<mx:Canvas width="150" height="150" borderColor="#666666" borderStyle="solid" cornerRadius="5"/>
+			<mx:Spacer height="20"/>
+			<view:PlusMinus label_text="变焦"/>
+			<view:PlusMinus label_text="变倍"/>
+			<view:PlusMinus label_text="光圈"/>
+			<view:PlusMinus label_text="速度"/>
+		</mx:VBox>	
+		<mx:Spacer height="100%"/>
+		<mx:Canvas width="100%" styleName="frame" borderStyle="none">
+			<mx:VBox width="100%" horizontalAlign="center" verticalGap="3" y="25">
+				<view:Switch label_text="对讲"/>
+				<view:Switch label_text="声音"/>
+				<view:Switch label_text="巡航"/>
+				<view:Switch label_text="雨刷"/>
+				<view:Switch label_text="辅助1"/>
+				<view:Switch label_text="辅助2"/>
+				<view:Switch label_text="辅助3"/>
+				<view:Switch label_text="辅助4"/>
+			</mx:VBox>
+			<view:StyleTitle text="开关设置"/>
+		</mx:Canvas>
+	</mx:VBox>
+</mx:Application>

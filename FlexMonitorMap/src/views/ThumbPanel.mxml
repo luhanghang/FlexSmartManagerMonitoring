@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" width="200" height="150" 
+	xmlns:utils="utils.*" creationComplete="init()" 
+	click="show_image()" useHandCursor="true" buttonMode="true" styleName="coverflow">
+	<mx:Metadata>
+		[Event(name="MapClick",type="events.MapEvent")]
+	</mx:Metadata>
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import events.MapEvent;
+			
+			[Bindable]
+			public var map:XML;
+			
+			[Bindable]
+			public var thumb_src:String;
+			
+			private var hasChild:Boolean = false;
+						
+			private function init():void {
+				hasChild = map.children().length() > 0;
+				if(hasChild)
+					title.text = map.@name + " (" + map.children().length() + ")";
+				else
+					title.text = map.@name;
+			}
+			
+			private function show_image():void {
+				this.dispatchEvent(new MapEvent(map, "MapClick"));
+			}
+		]]>
+	</mx:Script>
+	<utils:LoadingImage id="img" width="100%" height="100%" source="{ utils.Utils.get_url(map.@thumb)}" 
+		scaleContent="false" x="0" y="0" verticalAlign="middle"/>
+	<mx:Canvas x="0" y="0" width="100%" height="20" styleName="coverflow-title" backgroundAlpha="0.5" color="#ffffff" backgroundColor="#000000">
+		<mx:Label id="title" x="0" y="0" text="Label" height="100%" width="100%"/>
+	</mx:Canvas>
+</mx:Canvas>

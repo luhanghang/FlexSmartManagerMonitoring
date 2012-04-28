@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TextInput xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:utils="utils.*">
+	<mx:Script>
+		<![CDATA[
+			[Bindable]
+			public var itemSrc:XML;
+		
+			[Bindable]
+			public var errorMessage:String;
+			
+			[Bindable]
+			public var requiredError:String;
+		
+			[Bindable]
+			public var list:XMLList;
+		]]>
+	</mx:Script>
+	
+	<utils:UniqueValidatorXML source="{this}" required="true" property="text" 
+		selfObj="{itemSrc}" list="{list}" errorMessage="{errorMessage}" 
+		requiredFieldError="{requiredError}"/> 
+</mx:TextInput>

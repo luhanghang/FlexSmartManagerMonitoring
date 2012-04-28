@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="init()"
+	width="5" height="5" backgroundAlpha="1" backgroundColor="#ff0000" toolTip="{spot.@name}">
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			[Bindable]
+			public var spot:XML;
+			
+			private var timer:Timer = new Timer(300);
+			
+			private function init():void {
+				timer.repeatCount = 9;
+				timer.addEventListener(TimerEvent.TIMER, function():void {
+					setStyle("backgroundColor",timer.currentCount % 2 == 0?"#00fdfe":"red");		
+				});
+			}
+			
+			public function flash():void {
+				timer.reset();
+				timer.start();	
+			}
+		]]>
+	</mx:Script>	
+</mx:Canvas>

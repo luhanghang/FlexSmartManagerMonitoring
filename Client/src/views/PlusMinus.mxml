@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" width="105"
+	horizontalAlign="center" verticalAlign="middle" horizontalGap="0" 
+	cornerRadius="4" borderColor="#666666" borderStyle="solid" fontSize="12">
+	<mx:Script>
+		<![CDATA[
+			[Bindable]
+			public var label_text:String;	
+		]]>
+	</mx:Script>
+	
+	<mx:Fade id="fadeIn" alphaFrom="0.5" alphaTo="1"/>
+	<mx:Fade id="fadeOut" alphaFrom="1" alphaTo="0.5"/>
+	
+	<mx:HBox horizontalAlign="center" width="30%">
+		<mx:Label text="+" width="12"/>
+	</mx:HBox>
+	<mx:HBox horizontalAlign="center" width="40%" borderColor="#666666" borderStyle="solid" borderSides="left right">
+		<mx:Label text="{label_text}"/>
+	</mx:HBox>	
+	<mx:HBox horizontalAlign="center" width="30%">
+		<mx:Label text="-" width="12"/>
+	</mx:HBox>
+</mx:HBox>

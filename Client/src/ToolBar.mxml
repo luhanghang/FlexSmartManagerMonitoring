@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute"
+	xmlns:mode="views.VisualMode.*" creationComplete="check_sign_in()">
+	<mx:Script>
+		<![CDATA[
+			import mx.rpc.events.ResultEvent;
+			import mx.events.CloseEvent;
+			import utils.Utils;
+			import utils.Alert;
+			import mx.utils.StringUtil;
+			
+			[Bindable]
+			public static var userInfo:String = "";
+			
+			private var timer:Timer = new Timer(10000);
+			
+			private function check_sign_in():void {
+				timer.addEventListener(TimerEvent.TIMER, keepAlive);
+				userRPC.url = Utils.get_url("/users/check_sign_in");
+				userRPC.send();			
+			}
+			
+			private function openMap():void {
+				var url:String = "FlexMonitorMap.html"; 
+				var request:URLRequest = new URLRequest(url);
+				navigateToURL(request,"_blank");
+			}
+			
+			private function confirm_sign_off():void {
+				signOutRPC.url = Utils.get_url("/users/sign_out");
+				signOutRPC.send();
+			}
+				
+			private function init(event:ResultEvent):void {
+				var r:String = StringUtil.trim(event.result.toString());
+				if(r == "") {
+					signOut();
+				}
+				timer.start();
+				Utils.loginInfo = r;
+				userInfo = Utils.getUserInf();
+				logo.source = Utils.get_url(Utils.getLogoUri());
+			}
+			
+			private function keepAlive(event:TimerEvent):void {
+				keepAliveRPC.send();
+			}
+			
+			private function reload(event:ResultEvent):void {
+				signOut();		
+			}
+			
+			private function signOut():void {
+				var request:URLRequest = new URLRequest("/"); 
+				navigateToURL(request,"_top");
+			}
+			
+			private function check_state(event:ResultEvent):void {
+				var s:String = event.result.toString();
+				if(s == "0") {
+					signOut();	
+				}
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Style source="stylesheets/stylesheet.css"/>
+	
+	<mx:HTTPService id="keepAliveRPC" url="{Utils.get_url('/users/keep_alive')}" resultFormat="text" result="check_state(event)"/>
+	<mx:HTTPService id="signOutRPC" result="reload(event)" resultFormat="text"/>
+	<mx:HTTPService id="userRPC" useProxy="false" showBusyCursor="false" result="init(event)" resultFormat="text"/>
+
+	<mx:Glow id="glowIn" alphaFrom="0.3" alphaTo="0.8" blurXFrom="0" blurXTo="50" blurYFrom="0" blurYTo="10" color="0x5dd7fe" repeatCount="1000"/>
+	<mx:Glow id="glowOut" alphaFrom="0.8" alphaTo="0" blurXFrom="50" blurXTo="0" blurYFrom="10" blurYTo="0" color="0x5dd7fe"/>
+	
+	<mx:Fade id="fadeIn" alphaFrom="0.5" alphaTo="1"/>
+	<mx:Fade id="fadeOut" alphaFrom="1" alphaTo="0.5"/>
+	
+	<!--
+	<mx:ApplicationControlBar x="0" y="0" dock="true" height="40">
+		<mx:HBox width="190">
+			<mx:Label id="logo" text="SmartVision" fontSize="24" fontWeight="bold" color="#cccccc" fontFamily="Georgia"/>
+		</mx:HBox>	
+		<mx:HBox width="100%">
+			<mx:Image id="map" source="assets/map.png" click="openMap()"
+				 toolTip="电子地图" useHandCursor="true" buttonMode="true" alpha="0.5" rollOverEffect="{fadeIn}" rollOutEffect="{fadeOut}"/>	  	 	 
+		</mx:HBox>
+		<mx:Spacer width="100%"/>
+		<mode:Full width="22" height="18" number="全屏" mode="0"/>
+			<mode:Single width="22" height="18" number="1" mode="1"/>
+			<mode:Four width="22" height="18" number="4" mode="2"/>
+			<mode:Six width="22" height="18" number="6" mode="5"/>
+			<mode:Eight width="22" height="18" number="8" mode="6"/>
+			<mode:Nine width="22" height="18" number="9" mode="3"/>
+			<mode:Sixteen width="22" height="18" number="16" mode="4"/>
+		<mx:HBox width="190" horizontalAlign="right">
+			<mx:Image toolTip="退出" source="assets/logout.png" click="confirm_sign_off()" buttonMode="true" useHandCursor="true" alpha="0.5" rollOverEffect="{fadeIn}" rollOutEffect="{fadeOut}"/>
+		</mx:HBox>
+	</mx:ApplicationControlBar>
+	-->
+	<mx:Canvas width="100%" height="40" styleName="board" backgroundImage="assets/bt.jpg" backgroundSize="100%" backgroundAlpha="1">
+		<mx:HBox width="100%" height="100%" verticalCenter="0">
+			<mx:Spacer width="5"/>
+			<mx:Image id="logo" source="assets/logo.jpg" width="235" height="40"/>
+			<mx:Spacer width="100%"/>
+			<mx:Label text="{userInfo}" paddingTop="10"/>
+			<mx:Canvas width="35" height="100%">
+				<mx:Image toolTip="退出" click="confirm_sign_off()" source="assets/logout.png" buttonMode="true" useHandCursor="true" alpha="0.5" rollOverEffect="{fadeIn}" rollOutEffect="{fadeOut}" verticalCenter="0" horizontalAlign="right"/>
+			</mx:Canvas>
+		</mx:HBox>
+	</mx:Canvas>
+</mx:Application>

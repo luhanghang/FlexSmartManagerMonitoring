@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="init()" 
+	styleName="frame" borderSides="" minHeight="25" 
+	verticalScrollPolicy="off" horizontalScrollPolicy="off"
+	xmlns:pv3dEffects="ws.tink.flex.pv3dEffects.*"
+	xmlns:utils="utils.*"
+	xmlns:views="views.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.events.DragEvent;
+			import mx.events.ListEvent;
+			import mx.events.CloseEvent;
+			import mx.rpc.events.ResultEvent;
+			import utils.Utils;
+			import utils.Icons;
+			import mx.utils.StringUtil;
+			import mx.controls.Alert;
+			import mx.core.UIComponent;
+			import mx.managers.DragManager;
+			
+			[Bindable]
+			private var schemes:XML;
+		
+			private function init():void {
+				schemeRPC.url = Utils.get_url("/polling_schemes/list");
+				schemeRPC.send();	
+			}
+			
+			private function clearSchemeName():void {
+				if(StringUtil.trim(schemeName.text) == '请填写方案名称') {
+					schemeName.text = '';	
+				}
+			}
+			
+			private function setSchemeDefaultName():void {
+				if(StringUtil.trim(schemeName.text) == '') {
+					schemeName.text = '请填写方案名称';	
+				}	
+			}
+			
+			private function disableSave():void {
+				saveButton.enabled = false;
+			}
+			
+			private var nameValid:Boolean = false;
+			private var intervalValid:Boolean = true;
+			private function enableSave():void {
+				var name:String = StringUtil.trim(schemeName.text);
+				nameValid = name != '' && name != '请填写方案名称' ;
+				saveButton.enabled = nameValid && intervalValid;
+			}
+			
+			private function save():void {
+				var name:String = StringUtil.trim(schemeName.text);
+				
+				if(name != '' && name != '请填写方案名称') {
+					var params:URLVariables = new URLVariables;
+					params['scheme[name]'] = StringUtil.trim(schemeName.text);
+					params['scheme[interval]'] = StringUtil.trim(interval.text);
+					if(modifyScheme) {
+						schemeUpdateRPC.url = Utils.get_url("/polling_schemes/update/" + modifyScheme.@id);
+						schemeUpdateRPC.send(params);
+					}
+					else {
+						schemeCreateRPC.url = Utils.get_url("/polling_schemes/create");
+						schemeCreateRPC.send(params);
+					}		
+				}
+			}
+			
+			private function init_scheme(event:ResultEvent):void {
+				schemes = XML(event.result);
+			}
+			
+			private function add_scheme(event:ResultEvent):void {
+				close_scheme_inf();
+				schemes.appendChild(XML(event.result));	
+			}
+			
+			private function pIconFunc(item:Object):* {
+				if(isScheme(item as XML))
+					return Icons.SCHEME;
+				if(item.@item_type == '0')
+					return Icons.MONITOR;
+				if(item.@item_type == '1')
+					return Icons.PRESETTING;	
+			}
+			
+			private function new_scheme():void {
+				buttonBar.selectedIndex = 1;
+				schemeList.enabled = false;
+			}
+			
+			private function close_scheme_inf():void {
+				schemeName.text = "请填写方案名称";
+				interval.text = "5";
+				buttonBar.selectedIndex = 0;
+				schemeList.enabled = true;
+				modifyScheme = null;
+			}
+			
+			private function remove(event:CloseEvent):void {
+				if(event.detail == Alert.YES) {
+					schemeList.enabled = false;
+					var node:XML = schemeList.selectedItem as XML;
+					if(isScheme(node)) {
+						remove_scheme(node);
+					} else {
+						remove_item(node);
+					}
+					var items:XMLList = (node.parent() as XML).children();
+					for(var i:Number = 0; i < items.length(); i++) {
+						if(items[i] == node) {
+							delete items[i];
+							break;
+						}
+					}	
+				}
+			}
+			
+			private function remove_item(item:XML):void {
+				schemeRemoveItemRPC.url = Utils.get_url("/polling_schemes/remove_item/" + item.@id);
+				schemeRemoveItemRPC.send(); 		
+			}
+			
+			private function remove_scheme(scheme:XML):void {
+				schemeRemoveRPC.url = Utils.get_url("/polling_schemes/destroy/" + scheme.@id);
+				schemeRemoveRPC.send();
+			}
+						
+			private function toggleButtonBar():void {
+				buttonBar.visible = !buttonBar.visible;	
+			}
+			
+			private function isScheme(node:XML):Boolean {
+				return node.localName().toString() == "Scheme";
+			}
+			
+			private function labelFunc(item:Object):* {
+				return isScheme(item as XML)? (item.@name + " (" + item.Item.length() + ")"):item.@name; 
+			}
+			
+			private function tipFunc(item:Object):* {
+				return isScheme(item as XML)? ("间隔时间:" + item.@interval + "秒"):item.@name; 
+			}
+			
+			private var draggedItem:XML;
+			private function dragEnter(event:DragEvent):void {
+				event.preventDefault();
+				draggedItem = Tree(event.dragInitiator).selectedItem as XML;
+				if(isSpot(draggedItem) || isPresetting(draggedItem)) {
+					DragManager.acceptDragDrop(UIComponent(event.currentTarget));	
+				}
+			}
+			
+			private function isSpot(node:XML):Boolean {
+				return node.localName().toString() == "Spot";
+			}
+			
+			private function isPresetting(node:XML):Boolean {
+				return node.localName().toString() == "Presetting";
+			}
+			
+			private function dragOver(event:DragEvent):void {
+				event.preventDefault();
+				schemeList.selectedIndex = schemeList.calculateDropIndex(event);
+                var node:XML = schemeList.selectedItem as XML;
+				for each(var item:XML in node.children()) {
+					if(isSpot(draggedItem) && item.@spot == draggedItem.@id) {
+						DragManager.showFeedback(DragManager.NONE);
+						return;	
+					}
+					if(isPresetting(draggedItem) && item.@presetting == draggedItem.@id) {
+						DragManager.showFeedback(DragManager.NONE);
+						return;	
+					}
+				} 
+				
+				event.currentTarget.showDropFeedback(event);
+				schemeList.expandItem(node,true); //如果是组将其展开
+
+                DragManager.showFeedback(DragManager.COPY);
+			}
+			
+			private function dragExit(event:DragEvent):void {
+            	event.preventDefault();
+                event.currentTarget.hideDropFeedback(event);	
+            }
+            
+            private function dragDrop(event:DragEvent):void {
+            	event.preventDefault();
+                event.currentTarget.hideDropFeedback(event);
+                schemeList.enabled = false;
+                schemeList.selectedIndex = schemeList.calculateDropIndex(event);
+                var node:XML = schemeList.selectedItem as XML;
+                schemeAddItemRPC.url = Utils.get_url("/polling_schemes/add_item/" + node.@id);
+                var params:URLVariables = new URLVariables;
+                if(isSpot(draggedItem)){
+                	params["item[item_type]"] = "0";
+                	params["item[spot_id]"] = draggedItem.@id;	
+                } else {
+                	params["item[item_type]"] = "1";
+                	params["item[spot_presetting_id]"] = draggedItem.@id;
+                }
+                schemeAddItemRPC.send(params);
+            }
+            
+            private function addItem(event:ResultEvent):void {
+            	schemeList.enabled = true;
+            	var node:XML = schemeList.selectedItem as XML;
+            	node.appendChild(XML(event.result));
+            	schemeList.expandItem(node,true);
+            }
+            
+            private var modifyScheme:XML = null;
+            private function modify():void {
+            	new_scheme();
+            	modifyScheme = schemeList.selectedItem as XML;
+            	if(schemeName)
+            		doModify();	
+            }
+            
+            private function doModify():void {
+            	if(modifyScheme) {
+            		schemeName.text = modifyScheme.@name;
+            		interval.text = modifyScheme.@interval;
+            	}
+            }
+                        
+            private function schemeClick():void {
+            	modifyButton.enabled = true;
+            }
+            
+            private function update(event:ResultEvent):void {
+            	modifyScheme.@name = schemeName.text;
+            	modifyScheme.@interval = interval.text;
+				close_scheme_inf();	
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:HTTPService id="schemeRPC" result="init_scheme(event)" resultFormat="xml" requestTimeout="5000" fault="init()"/>
+	<mx:HTTPService id="schemeUpdateRPC" useProxy="false" showBusyCursor="true" resultFormat="text" result="update(event)"/>
+	<mx:HTTPService id="schemeCreateRPC" result="add_scheme(event)" resultFormat="xml"/>
+	<mx:HTTPService id="schemeRemoveRPC" showBusyCursor="true" useProxy="false" result="schemeList.enabled = true"/>
+	<mx:HTTPService id="schemeRemoveItemRPC" showBusyCursor="true" useProxy="false" result="schemeList.enabled = true"/>
+	<mx:HTTPService id="schemeAddItemRPC" result="addItem(event)" resultFormat="xml"/>
+	
+	<pv3dEffects:Cache id="hideFlip" transparent="true"/>
+    <pv3dEffects:Cube id="showFlip" constrain="true" transparent="true" direction="down" duration="500"/>
+    
+    <mx:Fade alphaFrom="0" alphaTo="1" id="show" effectStart="buttonBar.includeInLayout=true"/>
+    <mx:Fade alphaFrom="1" alphaTo="0" id="hide" effectEnd="buttonBar.includeInLayout=false"/>
+	
+	<utils:UniqueValidatorXML id="validatorSchemeName" source="{schemeName}" invalid="nameValid=false;disableSave()" valid="enableSave()" field="@name" 
+		required="true" property="text" requiredFieldError="请填写轮巡方案名称" list="{schemes.scheme}" errorMessage="轮巡方案名称已存在"/>
+	<mx:NumberValidator id="validatorInterval" source="{interval}" invalid="intervalValid=false;disableSave()" 
+		valid="intervalValid=true;enableSave()" property="text" required="true" requiredFieldError="请填写轮巡间隔" 
+		allowNegative="false" negativeError="请填写正确的轮巡间隔" minValue="1" maxValue="3600" precision="0"/>	
+	
+	<mx:VBox top="25" width="100%" height="100%" bottom="5" paddingLeft="10" paddingRight="10">
+		<mx:Tree id="schemeList" width="100%" height="100%" rowHeight="18" click="schemeClick()"
+			dataProvider="{schemes.Scheme}" labelFunction="labelFunc" showRoot="true" showDataTips="true" 
+			iconFunction="pIconFunc" dragEnabled="true" dragMoveEnabled="false" dataTipFunction="tipFunc"
+			dropEnabled="true" dragEnter="dragEnter(event)" dragOver="dragOver(event)" dragExit="dragExit(event)" dragDrop="dragDrop(event)"/>
+		<mx:ViewStack id="buttonBar" width="100%" height="45" paddingLeft="5" paddingRight="5" 
+			selectedIndex="0" visible="false" includeInLayout="false" showEffect="{show}" hideEffect="{hide}">	
+			<mx:HBox width="100%" verticalAlign="bottom" horizontalGap="3" hideEffect="{hideFlip}" showEffect="{showFlip}">
+				<mx:Button id="schemeButton" label="添加" click="new_scheme()"/>
+				<mx:Button id="modifyButton" label="修改" click="modify()" enabled="false"/>
+				<mx:Spacer width="100%"/>
+				<views:Trash id="trash" src="{schemeList}" confirm="确定删除?" callBack="remove"/>
+			</mx:HBox>
+			<mx:VBox width="100%" verticalGap="1" hideEffect="{hideFlip}" showEffect="{showFlip}" creationComplete="doModify()">
+				<mx:HBox width="100%" horizontalGap="1">
+					<mx:Label text="名称"/>
+					<mx:TextInput text="请填写方案名称" change="enableSave()" focusOut="setSchemeDefaultName()" focusIn="clearSchemeName()" id="schemeName" width="100%"/>
+				</mx:HBox>
+				<mx:HBox width="100%" horizontalGap="1">
+					<mx:Label text="间隔"/>
+					<mx:TextInput id="interval" text="5" width="40" textAlign="center"/>
+					<mx:Label text=" 秒"/>
+					<mx:Spacer width="100%"/>
+					<mx:Button icon="{Icons.SAVE}" width="25" toolTip="保存" id="saveButton" enabled="false" click="save()"/>
+					<mx:Button icon="{Icons.CANCEL}" width="25" toolTip="取消" click="close_scheme_inf()"/>
+				</mx:HBox>		
+			</mx:VBox>
+		</mx:ViewStack>
+	</mx:VBox>
+	<views:StyleTitle text="轮巡方案" buttonMode="true" useHandCursor="true" mouseChildren="false" click="toggleButtonBar()"/>
+</mx:Canvas>

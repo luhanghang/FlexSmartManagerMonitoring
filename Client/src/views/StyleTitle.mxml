@@ -1,0 +1,36 @@
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" x="0" y="0" width="100%" 
+	creationComplete="init()" horizontalScrollPolicy="off" verticalScrollPolicy="off">
+	<mx:Script>
+		<![CDATA[
+			import utils.Utils;
+		
+			[Bindable]
+			public var text:String;
+			
+			//[Bindable]
+			//private var gFilter:GlowFilter = Utils.neonFilter(0xffffff);
+			
+			public function init():void {
+				l.height = t.height - 5;
+				r.height = t.height - 5;
+				i.height = t.height - 5;
+				i.width = t.width + 10;
+			}
+			
+			public function setText(text:String):void {
+				t.text = text;
+				callLater(function():void {
+					i.width = t.width + 10;
+				});
+			}
+		]]>
+	</mx:Script>
+	<mx:HBox width="100%" horizontalGap="-1">
+		<mx:Canvas id="l" width="20" styleName="title" borderSides="right top"/>
+		<mx:Canvas id="m" x="20" backgroundAlpha="1" backgroundColor="#000000" borderColor="#ff0000" borderThickness="1" cornerRadius="4">
+			<mx:Canvas id="i" x="0" y="3" styleName="title" borderSides="left right bottom"/>
+		</mx:Canvas>
+		<mx:Canvas id="r" width="100%" styleName="title" borderSides="left top"/>
+	</mx:HBox>
+	<mx:Label id="t" color="#cccccc" text="{text}" y="-3" x="25"/>
+</mx:Canvas>

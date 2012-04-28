@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Image xmlns:mx="http://www.adobe.com/2006/mxml" width="32" height="32" 
+						source="{utils.Utils.trash_icon}"
+						dragEnter="DragEnter(event)"
+						dragOver="DragOver(event)"
+						dragExit="DragExit(event)"
+						dragDrop="DragDrop(event)" alpha="0.3">
+	<mx:Script>
+		<![CDATA[
+			import mx.events.DragEvent;
+			import utils.Utils;
+			import mx.core.DragSource;
+			import mx.managers.DragManager;
+			import mx.controls.Alert;
+			import mx.core.UIComponent;
+			
+			public var confirm:String;
+			public var callBack:Function;
+			public var src:Object;
+			public var srcClass:Class;
+			
+			public var dragEnterOverride:Boolean = false;
+			
+			protected function DragOver(event:DragEvent):void {
+            	//utils.Utils.trashGrow(this, true);
+            	DragManager.showFeedback(DragManager.LINK);
+            	glow.play();
+            	fadeIn.play();	 	
+            }   
+            
+            protected function DragExit(event:DragEvent):void {
+            	//utils.Utils.trashGrow(this, false);	 	
+            	glowOut.play();
+            	fadeOut.play();
+            } 
+            
+            protected function DragDrop(event:DragEvent):void {
+            	DragExit(event);
+            	utils.Alert.show(confirm, "删除确认", Alert.YES|Alert.NO, this, callBack, null, Alert.NO);
+            }
+            
+            private function DragEnter(event:DragEvent):void {
+            	if(this.dragEnterOverride) return;
+				if((src && event.dragInitiator == src) || (srcClass && event.dragInitiator is srcClass)) {
+					if(srcClass) src = event.dragInitiator;
+					DragManager.acceptDragDrop(UIComponent(event.currentTarget));
+					glow.play();
+					fadeIn.play();
+				}
+			}			
+		]]>
+	</mx:Script>
+	<mx:Fade id="fadeIn" alphaFrom="0.3" alphaTo="1" target="{this}"/>
+	<mx:Fade id="fadeOut" alphaFrom="1" alphaTo="0.3" target="{this}"/> 
+	
+	<mx:Glow id="glow" duration="1000" 
+        alphaFrom="1.0" alphaTo="0" 
+        blurXFrom="0.0" blurXTo="50.0" 
+        blurYFrom="0.0" blurYTo="50.0" 
+        color="0x00FF80" target="{this}" repeatCount="10000"/>
+    <mx:Glow id="glowOut" duration="1000" 
+        alphaFrom="0.5" alphaTo="0" 
+        blurXFrom="0.0" blurXTo="50.0" 
+        blurYFrom="0.0" blurYTo="50.0" 
+        color="0x00FF80" effectStart="glow.stop()" target="{this}"/> 
+</mx:Image>

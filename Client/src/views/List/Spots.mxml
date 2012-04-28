@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" creationComplete="_init()" 
+	horizontalScrollPolicy="off" verticalScrollPolicy="off" minHeight="25"
+	xmlns:views="views.*" styleName="frame" borderStyle="none"
+	xmlns:mode="views.VisualMode.*">
+	<!--
+	<mx:Metadata>
+		[Event(name="SpotSelected", type="events.SpotEvent")]
+		[Event(name="SpotTreeInited", type="events.SpotEvent")]
+	</mx:Metadata>
+	-->
+	<mx:Script>
+		<![CDATA[
+			import mx.rpc.events.FaultEvent;
+			import events.SpotEvent;
+			import mx.collections.ArrayCollection;
+			import mx.rpc.events.ResultEvent;
+			import flash.external.*;
+			import utils.*;
+	        
+	        [Bindable]
+			private var groups:XML;
+			private var timer:Timer = new Timer(3000);
+			private var visualModes:String;
+			
+			private function _init():void {
+				timer.addEventListener(TimerEvent.TIMER, refresh_list);
+				vmRPC.url = Utils.get_url("/companies/visual_modes");
+				vmRPC.send();
+			}
+			
+			private function refresh_list(event:TimerEvent):void {
+				timer.stop();
+				stateRPC.url = Utils.get_url("/spots/states");	
+				stateRPC.send();	
+			}
+			
+			private function setVisualModes(event:ResultEvent):void {
+				visualModes = event.result.toString();
+				if(visualModes == "all") {
+					vm1.visible = true;
+					vm1.includeInLayout = true;
+					vm2.visible = true;
+					vm2.includeInLayout = true;
+					vm3.visible = true;
+					vm3.includeInLayout = true;
+					vm4.visible = true;
+					vm4.includeInLayout = true;
+					vm5.visible = true;
+					vm5.includeInLayout = true;
+					vm6.visible = true;
+					vm6.includeInLayout = true;
+				} else {
+					var modes:Array = visualModes.split(",");
+					for each(var mode:String in modes) {
+						if(mode == "1") {
+							vm1.visible = true;
+							vm1.includeInLayout = true;	
+						}
+						if(mode == "2") {
+							vm2.visible = true;
+							vm2.includeInLayout = true;	
+						}
+						if(mode == "3") {
+							vm3.visible = true;
+							vm3.includeInLayout = true;	
+						}
+						if(mode == "4") {
+							vm4.visible = true;
+							vm4.includeInLayout = true;	
+						}
+						if(mode == "5") {
+							vm5.visible = true;
+							vm5.includeInLayout = true;	
+						}
+						if(mode == "6") {
+							vm6.visible = true;
+							vm6.includeInLayout = true;	
+						}
+					}	
+				}
+				init();	
+			}
+			
+			private function init():void {
+				timer.stop();
+				spotGroupRPC.url = Utils.get_url("/spot_groups/list_with_presetting?local=" + netChoose.selectedIndex);
+				spotGroupRPC.send();
+			}
+			
+			private function set_group(event:ResultEvent):void {
+				groups = XML(event.result);	
+				timer.start();
+				//groupTree.dataProvider = groups;
+				//var group_root:XML = groups.Group.(@parent=="0")[0];
+				//groupTree.firstVisibleItem = group_root.Group[0];
+				//dispatchEvent(new SpotEvent(groups, SpotEvent.IS_ROOT, SpotEvent.INITED));
+				//this.callLater(function():void {groupTree.expandItem(group_root,true)});
+			}
+			
+			private var oldNode:XML;
+			private function play_video():void {
+				//presettingButton.enabled = false;
+				var node:XML = groupTree.selectedItem as XML;
+				if(node == oldNode) return;
+				oldNode = node;
+				playVideo();
+			}
+			
+			private function playVideo():void {
+				var node:XML = groupTree.selectedItem as XML;
+				if(node == null) { 
+					//groupTree.selectedIndex = -1;
+					//dispatchEvent(new SpotEvent(node, SpotEvent.IS_NULL, SpotEvent.SELECTED));
+					return;
+				}
+				if(isRoot(node)) {
+	            	groupTree.expandItem(node,true);
+	            	//dispatchEvent(new SpotEvent(node, SpotEvent.IS_ROOT, SpotEvent.SELECTED));
+					return;
+	   			}
+				if(isGroup(node)) {
+	            	groupTree.expandItem(node,!groupTree.isItemOpen(node));
+	            	//dispatchEvent(new SpotEvent(node, SpotEvent.IS_GROUP, SpotEvent.SELECTED));
+					return;
+	   			}
+	   			
+	   			if(isPresetting(node)) {
+	   				//dispatchEvent(new SpotEvent(node, SpotEvent.IS_PRESETTING, SpotEvent.SELECTED));
+	   				return;
+	   			} 
+	            
+	            //dispatchEvent(new SpotEvent(node, SpotEvent.IS_SPOT, SpotEvent.SELECTED));
+            	//presettingButton.enabled = true;
+            	var name:String = node.@name;
+            	var address:String = node.@address;
+				ExternalInterface.call("play_video",name, address);
+			}
+			
+			private function set_icon(item:Object):* {
+				//if(isRoot(item as XML)) return Icons.HOME;
+				var _item:XML = item as XML;
+				if(isGroup(_item)) {
+					//return groupTree.isItemOpen(item)? groupTree.getStyle('folderOpenIcon'):groupTree.getStyle('folderClosedIcon');
+					return Icons.FOLDER;
+				} 
+				if(isPresetting(_item)) return Icons.PRESETTING;
+				if(_item.@state == '1')
+					return Icons.ENABLED;
+				return Icons.DISABLED;	
+			}
+			
+			private function isGroup(node:XML):Boolean {
+				return node.localName().toString() == "Group";
+			}
+			
+			private function isRoot(node:XML):Boolean {
+				return node.@parent == "0";
+			}
+			
+			private function isPresetting(node:XML):Boolean {
+				return node.localName().toString() == "Presetting";
+			}	
+			
+			private function labelFunction(item:XML):String {
+				if(isGroup(item)) {
+					var gl:Number = item.child('Group').length();
+					var g:String = "";
+					if(gl > 0) g = "组:" + gl + ",";
+					return item.@name + " (" + g + "点" + item.child('Spot').length() + ")";
+				}
+				return item.@name;
+			}
+			
+			private function showTip(item:Object):String {
+				return item.@name; 
+			}
+			
+			private function set_states(event:ResultEvent):void {
+				var states:String = event.result.toString();
+				var ss:Array = states.split(",");
+				for each(var spot:XML in groups.descendants("Spot")) {
+					var s:String = "0";
+					for each(var _s:String in ss) {
+						if(spot.@id == _s) {
+							s = "1";
+							break;
+						}		
+					}
+					spot.@state = s;
+				}	
+				timer.start();
+			}
+			
+			private function fault(event:FaultEvent):void {
+				
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:HTTPService id="spotGroupRPC" result="set_group(event)" resultFormat="xml" fault="init()" requestTimeout="5000" useProxy="false" showBusyCursor="true"/>
+	<mx:HTTPService id="stateRPC" result="set_states(event)" resultFormat="text" fault="fault(event)" useProxy="false" showBusyCursor="false"/>
+	<mx:HTTPService id="vmRPC" result="setVisualModes(event)" resultFormat="text" fault="init()" requestTimeout="5000" useProxy="false" showBusyCursor="true"/>
+	<mx:VBox width="100%" height="100%" y="25" verticalGap="5" horizontalAlign="center" horizontalScrollPolicy="off" verticalScrollPolicy="off" paddingLeft="5" paddingRight="5">
+    	<views:Search id="buttonBar" tree="{groupTree}" xml="{groups}" paddingLeft="2"/>
+		<mx:Tree id="groupTree" width="100%" height="100%" rowHeight="18" doubleClickEnabled="true" doubleClick="playVideo()"  
+				labelFunction="labelFunction" itemRenderer="skins.TreeItemRender"
+				iconFunction="set_icon" showRoot="false" showDataTips="true"
+			    click="play_video()" dataTipFunction="showTip" dataProvider="{groups}"
+			    dragEnabled="true" dragMoveEnabled="false"  openItems="{groups..Group}"/>
+		<mx:HBox width="100%" horizontalAlign="center" paddingTop="5" paddingBottom="5">
+			<mode:Full width="22" height="18" number="全屏" mode="0"/>
+			<mode:Single id="vm1" width="22" height="18" number="1" mode="1" visible="false" includeInLayout="false"/>
+			<mode:Four id="vm2" width="22" height="18" number="4" mode="2" visible="false" includeInLayout="false"/>
+			<mode:Six id="vm5" width="22" height="18" number="6" mode="5" visible="false" includeInLayout="false"/>
+			<mode:Eight id="vm6" width="22" height="18" number="8" mode="6" visible="false" includeInLayout="false"/>
+			<mode:Nine id="vm3" width="22" height="18" number="9" mode="3" visible="false" includeInLayout="false"/>
+			<mode:Sixteen id="vm4" width="22" height="18" number="16" mode="4" visible="false" includeInLayout="false"/>
+		</mx:HBox>
+		<mx:ToggleButtonBar id="netChoose" includeInLayout="false" visible="false" itemClick="init()">
+    		<mx:String>外网</mx:String>
+    		<mx:String>内网</mx:String>
+    	</mx:ToggleButtonBar>
+	</mx:VBox>
+	<views:StyleTitle text="监控点" buttonMode="true" useHandCursor="true" mouseChildren="false" click="netChoose.visible = !netChoose.visible;netChoose.includeInLayout = !netChoose.includeInLayout;"/>
+</mx:Canvas>

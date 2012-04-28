@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+	useHandCursor="true" buttonMode="true" horizontalScrollPolicy="off" 
+	toolTip="{spot.@name}" backgroundAlpha="0" verticalScrollPolicy="off"
+	creationCompleteEffect="{fadeIn}" mouseOver="moveToTop(event)" x="-58" y="35" click="open_spot(event)">
+	
+	<mx:Script>
+		<![CDATA[
+			import utils.Utils;
+			[Bindable]
+			public var spot:XML;
+			
+			public var callBack:Function;
+
+			private function moveToTop(event:MouseEvent):void {
+				this.parent.setChildIndex(this, this.parent.numChildren - 1);
+			}
+			
+			private function open_spot(event:MouseEvent):void {
+				callBack.call(parent,spot,this);
+			}
+		]]>
+	</mx:Script>
+	
+	<mx:Fade id="fadeIn" alphaFrom="0" alphaTo="1" duration="500"/>
+	<mx:Fade id="fadeOut" alphaFrom="1" alphaTo="0"  duration="500"/>
+	
+	<mx:Image x="0" y="45" source="assets/monitor_icon.png"/>
+	<mx:Canvas id="s_name" x="0" y="0" width="115" height="50" 
+		horizontalScrollPolicy="off" verticalScrollPolicy="off">
+		<mx:Image x="0" y="0" source="assets/tips.png"/>
+		<mx:Label width="100" color="#000000" x="5" y="5" text="{spot.@name}"/>
+	</mx:Canvas>
+</mx:Canvas>
